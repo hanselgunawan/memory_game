@@ -1,9 +1,12 @@
 package com.hanseltritama.memorygame;
 
+import android.media.MediaPlayer;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import java.util.Arrays;
@@ -22,6 +25,7 @@ public class MainActivity extends AppCompatActivity {
     private int matchedCounter = 0;
     private int clickCounter = 0;
     private int[] clickedCard = new int[2];
+    private ImageView oopsImageView;
 
     public <T> void shuffle(T[] cards) {
         Random rand = new Random();
@@ -37,7 +41,7 @@ public class MainActivity extends AppCompatActivity {
         cards[b] = temp;
     }
 
-    public void resetImage() {
+        public void resetImage() {
         ImageButton first_card = findViewById(getResources()
                 .getIdentifier("imageButton" + String.valueOf(clickedCard[0]),"id", getPackageName()));
         ImageButton second_card = findViewById(getResources()
@@ -47,7 +51,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void resetClickedCardArray() {
-        Arrays.fill(clickedCard, 0);
+        Arrays.fill(clickedCard, -1);
     }
 
     public void resetClickCounter() {
@@ -58,23 +62,77 @@ public class MainActivity extends AppCompatActivity {
         return (cards[clickedCard[0]].imageFile == cards[clickedCard[1]].imageFile);
     }
 
+    public void playSound() {
+        MediaPlayer mediaPlayer;
+        mediaPlayer = MediaPlayer.create(this, cards[clickedCard[clickCounter]].soundFile);
+        mediaPlayer.start();
+    }
+
+    public void disableAllButtons() {
+        android.support.v7.widget.GridLayout gridLayout = findViewById(R.id.gridLayout);
+        for(int i = 0; i < gridLayout.getChildCount(); i++) {
+            View view = gridLayout.getChildAt(i);
+            view.setEnabled(false);
+            view.setAlpha(0.5f);
+        }
+    }
+
+    public void disableMatchedButton() {
+        android.support.v7.widget.GridLayout gridLayout = findViewById(R.id.gridLayout);
+        View first_button = gridLayout.getChildAt(clickedCard[0]);
+        View second_button = gridLayout.getChildAt(clickedCard[1]);
+        first_button.setEnabled(false);
+        second_button.setEnabled(false);
+    }
+
+    public void enableButtons() {
+        android.support.v7.widget.GridLayout gridLayout = findViewById(R.id.gridLayout);
+        for(int i = 0; i < gridLayout.getChildCount(); i++) {
+            View view = gridLayout.getChildAt(i);
+            view.setEnabled(true);
+            view.setAlpha(1f);
+        }
+    }
+
     public void onImageClick(View view) {
         ImageButton imageButton = (ImageButton) view;
         int imgId = Integer.parseInt(imageButton.getTag().toString());
+
+        if(clickedCard[0] == imgId) return;
+
         imageButton.setImageResource(cards[imgId].imageFile);
         clickedCard[clickCounter] = imgId;
+        playSound();
+
         clickCounter++;
+
         if(clickCounter == 2) {
             if(!checkMatch()) {
-                resetImage();
-                resetClickedCardArray();
-                resetClickCounter();
+                disableAllButtons();
+                oopsImageView.setVisibility(View.VISIBLE);
+                final Runnable runnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        resetImage();
+                        resetClickedCardArray();
+                        resetClickCounter();
+                        enableButtons();
+                        oopsImageView.setVisibility(View.GONE);
+                    }
+                };
+                new Timer().schedule(new TimerTask() {//Timer is on a different Thread with UI updates
+                    @Override
+                    public void run() {
+                        runOnUiThread(runnable);//passing action to Main Thread Looper's queue
+                    }
+                }, 1000);
             }
             else {
+                disableMatchedButton();
                 resetClickedCardArray();
                 resetClickCounter();
                 matchedCounter++;
-                if(matchedCounter == data[0].length) {
+                if(matchedCounter == data.length) {
                     Toast.makeText(this, "WIN!", Toast.LENGTH_SHORT).show();
                 }
             }
@@ -85,6 +143,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        Arrays.fill(clickedCard, -1);
+        oopsImageView = findViewById(R.id.oopsImageView);
+        oopsImageView.setVisibility(View.GONE);
 
         for(int i = 0; i < data.length; i++) {
             cards[i] = new Card(data[i][0], data[i][1]);
