@@ -5,6 +5,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -94,6 +95,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void displayTryAgainMessage() {
+        android.support.v7.widget.GridLayout gridLayout = findViewById(R.id.gridLayout);
+        View try_again_layout = findViewById(R.id.try_again_layout);
+        gridLayout.setAlpha(0.5f);
+        gridLayout.setEnabled(false);
+        try_again_layout.setVisibility(View.VISIBLE);
+    }
+
     public void onImageClick(View view) {
         ImageButton imageButton = (ImageButton) view;
         int imgId = Integer.parseInt(imageButton.getTag().toString());
@@ -133,10 +142,19 @@ public class MainActivity extends AppCompatActivity {
                 resetClickCounter();
                 matchedCounter++;
                 if(matchedCounter == data.length) {
-                    Toast.makeText(this, "WIN!", Toast.LENGTH_SHORT).show();
+                    displayTryAgainMessage();
                 }
             }
         }
+    }
+
+    public void onClickYes(View view) {
+        recreate();
+    }
+
+    public void onClickNo(View view) {
+        android.os.Process.killProcess(android.os.Process.myPid());
+        System.exit(1);
     }
 
     @Override
